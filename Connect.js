@@ -1,6 +1,12 @@
 // Variables used by Scriptable.
 // These must be at the very top of the file. Do not edit.
 // icon-color: deep-brown; icon-glyph: magic;
+
+// Some customisations
+const timeoutDays = 7 // how many days to wait until this person will be chosen
+const city = 'Munich' // Make people from this city a priority
+const timeToTrigger = 12 // Hour of the day when to receive a notification
+
 function formatDate (date) {
     const monthNames = [
         'January', 'February', 'March',
@@ -40,16 +46,25 @@ const filterPeopleByCity = (people, targetCity) =>{
     return [peopleFromCity, peopleNotFromCity];
 }
 
-function separatePeopleByAlreadyContacted (people) {
-    const oneWeekInMs = 7 * 24 * 60 * 60 * 1000;  // Number of milliseconds in one week
+// This function separates the input array of people into two groups:
+// 1. those who have a "Last contact" date older than a specified number of days (peopleAlreadyContacted),
+// 2. those who do not have a "Last contact" date (peopleAlreadyContacted).
+// The function takes an array of people and a number of days as input, and returns an array of two arrays.
 
+function separatePeopleByAlreadyContacted (people) {
+    const msInOneDay = 24 * 60 * 60 * 1000;  // Number of milliseconds in one day
+    const msOld = timeoutDays * msInOneDay;  // Number of milliseconds in the given number of days
+
+    // Filter the people who have a "Last contact" date older than the specified number of days
     let peopleAlreadyContacted = people.filter(person =>
         person.dates.some(date =>
             date.label === 'Last contact' &&
-            new Date() - new Date(date.value) > oneWeekInMs
+            new Date() - new Date(date.value) > msOld
         )
     );
 
+    // Sort the peopleAlreadyContacted array by the "Last contact" date
+    // The person with the oldest "Last contact" date will be first
     peopleAlreadyContacted.sort((a, b) => {
         const aDate = a.dates.find(date => date.label === 'Last contact').value;
         const bDate = b.dates.find(date => date.label === 'Last contact').value;
@@ -57,6 +72,7 @@ function separatePeopleByAlreadyContacted (people) {
         return new Date(aDate) - new Date(bDate);
     });
 
+    // Filter the people who do not have a "Last contact" date
     const peopleNeverContacted = people.filter(person =>
         person.dates.every(date =>
             date.label !== 'Last contact'
@@ -115,14 +131,14 @@ const getName = (contact) => {
 // Pick randomly group 1 or 2 (group 1 is 2x more often)
 
 // Group 1
-// 1. People from munich Without Last date
+// 1. People from city Without Last date
 // if no such people, then
-// 2. People from munich with last date
+// 2. People from city with Last date
 
 // Group 2
 // 1. Without Last date
 // if no such people, then
-// 2. With a last date
+// 2. With a Last date
 const getContact = async (id) => {
     const containers = await ContactsContainer.all();
     const contacts = await Contact.all(containers);
@@ -132,7 +148,7 @@ const getContact = async (id) => {
     }
     //log(contacts.length);
 
-    const [peopleFromCity, peopleNotFromCity] = filterPeopleByCity(contacts, 'Munich');
+    const [peopleFromCity, peopleNotFromCity] = filterPeopleByCity(contacts, city);
     let pool = []
     if (Math.random() < 2 / 3) {
         pool = peopleFromCity;
@@ -170,7 +186,7 @@ const spawnNotification = async (silent = false) => {
     const triggerDate = new Date();
     triggerDate.setSeconds(triggerDate.getSeconds() + 1);
     //notification.setTriggerDate(triggerDate);
-    notification.setDailyTrigger(12, 0, true);
+    notification.setDailyTrigger(timeToTrigger, 0, true);
     notification.title = `Time to connect with`;
     notification.subtitle = name;
     notification.body = body;
