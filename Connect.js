@@ -2,6 +2,7 @@
 // These must be at the very top of the file. Do not edit.
 // icon-color: deep-brown; icon-glyph: magic;
 
+// v1
 // Some customisations
 const timeoutDays = 7 // how many days to wait until this person will be chosen
 const city = 'Munich' // Make people from this city a priority
@@ -42,6 +43,8 @@ const filterPeopleByCity = (people, targetCity) =>{
         person.postalAddresses.some(address =>
             address.city !== targetCity
         ))
+
+    //return [people,people];
 
     return [peopleFromCity, peopleNotFromCity];
 }
@@ -178,7 +181,7 @@ const spawnNotification = async (silent = false) => {
     await Notification.removeAllPending();
     const contact = await getContact();
     let name = getName(contact);
-    const note = contact.note;
+    const note = contact.note ? contact.note : '';
     const dates = `Last contact: ${getLastContact(contact.dates)}`;
     const body = `${note}\n${dates}`;
 
