@@ -2,9 +2,9 @@
 // These must be at the very top of the file. Do not edit.
 // icon-color: deep-brown; icon-glyph: magic;
 
-// v1
+// v1.3
 // Some customisations
-const timeoutDays = 7 // how many days to wait until this person will be chosen
+const timeoutDays = 30 // how many days to wait until this person will be chosen
 const city = 'Munich' // Make people from this city a priority
 const timeToTrigger = 12 // Hour of the day when to receive a notification
 
@@ -99,12 +99,20 @@ const getLastContact = (dates) => {
 };
 
 const updateDate = (dates) => {
-    const now = new Date();//.toISOString();
+    const now = new Date();
 
-    if (!dates.length) {
-        return [{label: 'Last contact', value: now}];
+    // Determine whether there's an object in dates with label === 'Last contact'
+    const lastContactExists = dates.some(date => isLastContact(date.label));
+
+    // If there's no object in dates with label === 'Last contact', create one
+    if (!lastContactExists) {
+        dates.push({label: 'Last contact', value: now});
+
+        return dates;
     }
-    return dates.map((date) => {
+
+    // Update the value of the object in dates with label === 'Last contact'
+    return dates.map(date => {
         if (isLastContact(date.label)) {
             date.value = now;
         }
@@ -152,7 +160,7 @@ const getContact = async (id) => {
     //log(contacts.length);
 
     const [peopleFromCity, peopleNotFromCity] = filterPeopleByCity(contacts, city);
-    let pool = []
+    let pool;
     if (Math.random() < 2 / 3) {
         pool = peopleFromCity;
     } else {
