@@ -2,7 +2,7 @@
 // These must be at the very top of the file. Do not edit.
 // icon-color: deep-brown; icon-glyph: magic;
 
-// v1.3
+// v1.4
 // Some customisations
 const timeoutDays = 30 // how many days to wait until this person will be chosen
 const city = 'Munich' // Make people from this city a priority
@@ -40,7 +40,7 @@ const filterPeopleByCity = (people, targetCity) =>{
             ))
 
     const peopleNotFromCity = people.filter(person =>
-        person.postalAddresses.some(address =>
+        person.postalAddresses.every(address =>
             address.city !== targetCity
         ))
 
@@ -159,27 +159,52 @@ const getContact = async (id) => {
     }
     //log(contacts.length);
 
+    let logData = {};
+
     const [peopleFromCity, peopleNotFromCity] = filterPeopleByCity(contacts, city);
+    logData.contacts = {
+        total: contacts.length,
+        peopleFromCity: peopleFromCity.length,
+        peopleNotFromCity: peopleNotFromCity.length
+    };
     let pool;
     if (Math.random() < 2 / 3) {
+        logData.random = "if";
         pool = peopleFromCity;
     } else {
         pool = peopleNotFromCity;
+        logData.random = "else";
     }
 
     let [peopleAlreadyContacted, peopleNeverContacted] = separatePeopleByAlreadyContacted(pool);
+    logData.pool = {
+        total: pool.length,
+        peopleAlreadyContacted: peopleAlreadyContacted.length,
+        peopleNeverContacted: peopleNeverContacted.length
+    };
+
     // if there is no people from city left, take from outside
     if (peopleNeverContacted.length === 0){
+        logData.peopleNeverContactedIsZero = true;
         [peopleAlreadyContacted, peopleNeverContacted] = separatePeopleByAlreadyContacted(peopleNotFromCity);
+
+        logData.peopleNotFromCity = {
+            total: peopleNotFromCity.length,
+            peopleAlreadyContacted: peopleAlreadyContacted.length,
+            peopleNeverContacted: peopleNeverContacted.length
+        };
     }
 
     let contact;
     if (peopleNeverContacted.length > 0) {
+        logData.peopleNeverContactedIsGt = "if";
         contact = peopleNeverContacted[Math.floor(Math.random() * peopleNeverContacted.length)];
     } else {
+        logData.peopleNeverContactedIsGt = "else";
         contact = peopleAlreadyContacted[0];
     }
 
+    //log(logData);
     //log({dates: contact.dates, name: contact.givenName, address: contact.postalAddresses});
 
     return contact;
@@ -188,10 +213,13 @@ const getContact = async (id) => {
 const spawnNotification = async (silent = false) => {
     await Notification.removeAllPending();
     const contact = await getContact();
-    let name = getName(contact);
+    const name = getName(contact);
     const note = contact.note ? contact.note : '';
     const dates = `Last contact: ${getLastContact(contact.dates)}`;
     const body = `${note}\n${dates}`;
+
+    /*log([name,body]);
+    return;*/
 
     notification = new Notification();
     const triggerDate = new Date();
